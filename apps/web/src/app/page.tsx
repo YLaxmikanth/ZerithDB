@@ -13,8 +13,11 @@ import {
   CheckCircle,
   Terminal,
   FileCode,
+  Menu,
+  X,
+  ChevronUp,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 
@@ -44,8 +47,8 @@ const AnimatedDiagram = dynamic(
     ),
   }
 );
-
 import FrameworkSection from "@/components/FrameworkSection";
+import { useState, useEffect } from "react";
 
 const HomePlayground = dynamic(() => import("@/components/HomePlayground"), {
   ssr: false,
@@ -57,6 +60,26 @@ const HomePlayground = dynamic(() => import("@/components/HomePlayground"), {
 });
 
 export default function LandingPage() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
   const fadeInUp = {
     initial: { opacity: 0, y: 20 },
     whileInView: { opacity: 1, y: 0 },
@@ -77,7 +100,7 @@ export default function LandingPage() {
   return (
     <main className="flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
       {/* ── HEADER ── */}
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md transition-colors duration-300">
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <motion.div
@@ -146,29 +169,153 @@ export default function LandingPage() {
             >
               Get Started
             </Link>
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="md:hidden p-2 text-gray-700"
+              aria-label="Toggle Menu"
+            >
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
         </div>
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="md:hidden absolute top-16 left-0 w-full overflow-hidden border-t border-gray-200 bg-white shadow-lg z-50"
+            >
+              <motion.nav
+                initial={{ y: -10 }}
+                animate={{ y: 0 }}
+                exit={{ y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="flex flex-col gap-4 px-6 py-4 text-sm font-medium text-gray-700"
+              >
+                <Link
+                  href="/docs"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="hover:text-black transition-colors"
+                >
+                  Docs
+                </Link>
+
+                <Link
+                  href="#features"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="hover:text-black transition-colors"
+                >
+                  Features
+                </Link>
+
+                <Link
+                  href="#how-it-works"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="hover:text-black transition-colors"
+                >
+                  How it works
+                </Link>
+
+                <Link
+                  href="#compare"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="hover:text-black transition-colors"
+                >
+                  Compare
+                </Link>
+
+                <Link
+                  href="/playground"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-blue-600 font-semibold"
+                >
+                  Playground
+                </Link>
+
+                <a
+                  href="https://github.com/Zerith-Labs/ZerithDB"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-black transition-colors"
+                >
+                  GitHub
+                </a>
+              </motion.nav>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* ── 1. HERO SECTION ── */}
-      <section className="relative pt-32 pb-20 px-6 max-w-6xl mx-auto text-center">
+      <section className="relative pt-32 pb-20 px-6 max-w-7xl mx-auto text-center">
         {/* Background Decorations */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 pointer-events-none overflow-visible">
+          {/* Subtle Dot Grid Pattern */}
+          <div
+            className="absolute inset-0 opacity-[0.15]"
+            style={{
+              backgroundImage: `radial-gradient(#cbd5e1 1px, transparent 1px)`,
+              backgroundSize: "24px 24px",
+            }}
+          />
+
+          {/* Blurred Background Glows */}
           <motion.div
             animate={{
               y: [0, -20, 0],
-              opacity: [0.3, 0.5, 0.3],
+              opacity: [0.3, 0.4, 0.3],
             }}
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-20 -left-20 w-64 h-64 bg-blue-100 rounded-full blur-3xl"
+            className="absolute top-10 left-1/4 w-[500px] h-[500px] bg-blue-100/50 rounded-full blur-[100px]"
           />
           <motion.div
             animate={{
               y: [0, 20, 0],
-              opacity: [0.2, 0.4, 0.2],
+              opacity: [0.2, 0.3, 0.2],
             }}
             transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            className="absolute top-40 -right-20 w-80 h-80 bg-indigo-100 rounded-full blur-3xl"
+            className="absolute top-20 right-1/4 w-[600px] h-[600px] bg-indigo-100/40 rounded-full blur-[120px]"
+          />
+
+          {/* Central Glow behind text */}
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-blue-50/30 rounded-full blur-[80px]" />
+
+          {/* Structured Decorative Elements - Moved closer for framing */}
+          {/* Left Abstract Shape - More animated & fluid */}
+          <motion.div
+            animate={{
+              y: [0, -25, 10, 0],
+              x: [0, 15, -10, 0],
+              scale: [1, 1.1, 0.95, 1],
+              rotate: [-15, 5, -25, -15],
+              borderRadius: ["2.5rem", "4rem", "2rem", "2.5rem"],
+            }}
+            transition={{
+              duration: 12,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="absolute top-[10%] left-[5%] w-40 h-40 bg-white/20 border border-blue-200/40 backdrop-blur-[12px] hidden xl:block shadow-[0_20px_50px_rgba(59,130,246,0.15)]"
+          />
+
+          {/* Right Abstract Shape - Reduced size and softened shadow */}
+          <motion.div
+            animate={{
+              y: [0, 20, -10, 0],
+              x: [0, -15, 10, 0],
+              scale: [1, 0.95, 1.05, 1],
+              rotate: [25, 40, 20, 25],
+              borderRadius: ["2.5rem", "4rem", "2rem", "2.5rem"],
+            }}
+            transition={{
+              duration: 15,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 1,
+            }}
+            className="absolute top-[38%] right-[5%] w-52 h-52 bg-white/10 border border-indigo-200/40 backdrop-blur-[6px] hidden xl:block shadow-[0_8px_30px_rgba(99,102,241,0.06)]"
           />
         </div>
 
@@ -262,10 +409,10 @@ export default function LandingPage() {
           viewport={{ once: true }}
           className="container mx-auto px-6 flex flex-wrap justify-center gap-8 md:gap-16 opacity-60 grayscale"
         >
-          <div className="flex items-center gap-2 font-semibold text-lg text-gray-800">
+          <div className="flex items-center gap-2 font-semibold text-lg text-foreground">
             <Terminal className="w-5 h-5" /> Open Source
           </div>
-          <div className="flex items-center gap-2 font-semibold text-lg text-gray-800">
+          <div className="flex items-center gap-2 font-semibold text-lg text-foreground">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -283,7 +430,7 @@ export default function LandingPage() {
             </svg>{" "}
             Built for Developers
           </div>
-          <div className="flex items-center gap-2 font-semibold text-lg text-gray-800">
+          <div className="flex items-center gap-2 font-semibold text-lg text-foreground">
             <Zap className="w-5 h-5" /> Zero Latency
           </div>
         </motion.div>
@@ -656,9 +803,39 @@ export default function LandingPage() {
         className="py-32 px-6 bg-background text-center relative overflow-hidden transition-colors duration-300"
       >
         {/* Abstract shapes for CTA */}
-        <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-10">
-          <div className="absolute top-10 left-10 w-32 h-32 border-2 border-black rounded-full rotate-45 animate-float" />
-          <div className="absolute bottom-10 right-10 w-48 h-48 border-2 border-black rounded-xl -rotate-12 animate-float-delayed" />
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+          {/* Subtle Background Glow for CTA */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-50/50 rounded-full blur-[100px] -z-10" />
+
+          <motion.div
+            animate={{
+              y: [0, -20, 15, 0],
+              x: [0, 10, -15, 0],
+              rotate: [12, 28, 5, 12],
+              borderRadius: ["2rem", "3.5rem", "1.5rem", "2rem"],
+            }}
+            transition={{
+              duration: 14,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="absolute top-12 left-[12%] w-36 h-36 bg-white/15 border border-blue-200/30 backdrop-blur-[10px] hidden md:block shadow-[0_15px_35px_rgba(0,0,0,0.08)]"
+          />
+          <motion.div
+            animate={{
+              y: [0, 20, -15, 0],
+              x: [0, -10, 8, 0],
+              rotate: [-20, -30, -15, -20],
+              borderRadius: ["3rem", "4rem", "2rem", "3rem"],
+            }}
+            transition={{
+              duration: 18,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 1,
+            }}
+            className="absolute bottom-12 right-[15%] w-48 h-48 bg-white/5 border border-gray-200/40 backdrop-blur-[5px] hidden md:block shadow-[0_10px_30px_rgba(0,0,0,0.03)]"
+          />
         </div>
 
         <motion.div
@@ -726,6 +903,7 @@ export default function LandingPage() {
             <Link href="/docs" className="hover:text-foreground transition-colors">
               Documentation
             </Link>
+
             <a
               href="https://github.com/Zerith-Labs/ZerithDB"
               target="_blank"
@@ -734,6 +912,7 @@ export default function LandingPage() {
             >
               GitHub
             </a>
+
             <Link
               href="/"
               onClick={() => toast("Blog will be available soon")}
@@ -741,6 +920,7 @@ export default function LandingPage() {
             >
               Blog
             </Link>
+
             <Link
               href="/"
               onClick={() => toast("Pricing will be available soon")}
@@ -762,6 +942,21 @@ export default function LandingPage() {
             © {new Date().getFullYear()} ZerithDB. Open Source.
           </div>
         </div>
+        <AnimatePresence>
+          {showScrollTop && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 20 }}
+              transition={{ duration: 0.25 }}
+              onClick={scrollToTop}
+              className="fixed bottom-5 right-5 md:bottom-8 md:right-8 z-50 bg-black text-white p-3 rounded-full shadow-lg hover:bg-gray-800 transition-colors"
+              aria-label="Back to top"
+            >
+              <ChevronUp className="w-5 h-5" />
+            </motion.button>
+          )}
+        </AnimatePresence>
       </footer>
       <SocialGraph />
     </main>
