@@ -4,27 +4,15 @@ import ora from "ora";
 import chalk from "chalk";
 import { execa } from "execa";
 import prompts from "prompts";
-import { writeFile } from "../utils/writeFile";
+import { validateProjectName, getProjectNameError } from "../validate-project-name.js";
+import { writeFile } from "../utils/writeFile.js";
+
 const TEMPLATES: Record<string, string> = {
   todo: "todo-app",
   chat: "chat-app",
   notes: "notes-app",
   blank: "blank",
 };
-
-const MAX_PACKAGE_NAME_LENGTH = 214;
-
-function getAppNameValidationError(value: string): string | null {
-  if (!/^[a-z0-9-]+$/.test(value)) {
-    return "App name can only contain lowercase letters, numbers, and dashes.";
-  }
-
-  if (value.length > MAX_PACKAGE_NAME_LENGTH) {
-    return `App name must be ${MAX_PACKAGE_NAME_LENGTH} characters or fewer.`;
-  }
-
-  return null;
-}
 
 export async function initCommand(
   appNameArg: string | undefined,
@@ -34,27 +22,27 @@ export async function initCommand(
   let appName = appNameArg;
 
   if (appName !== undefined) {
-    const validationError = getAppNameValidationError(appName);
-
-    if (validationError !== null) {
-      console.error(chalk.red(`Error: ${validationError}`));
-      process.exit(1);
-    }
+    // Passed as a CLI argument — validate and exit immediately if invalid.
+    // validateProjectName() prints a friendly error and calls process.exit(1).
+    validateProjectName(appName);
   }
 
   if (appName === undefined || appName.trim() === "") {
+    // No name provided — prompt the user interactively.
     const response = await prompts({
       type: "text",
       name: "appName",
       message: "What is your app name?",
       initial: "my-zerithdb-app",
-      validate: (v: string) => getAppNameValidationError(v) ?? true,
+      // Re-use the same validation logic so the prompt gives inline feedback.
+      validate: (v: string) => getProjectNameError(v) ?? true,
     });
 
     appName = response.appName as string;
   }
 
   if (appName === undefined || appName.trim() === "") {
+    // User cancelled the prompt (Ctrl-C).
     console.log(chalk.red("Aborted."));
     process.exit(1);
   }
@@ -90,12 +78,23 @@ export async function initCommand(
     spinner.text = "Generating starter application files...";
     await scaffoldTemplate(targetDir, appName, template);
 
-    spinner.text = "Configuring ZerithDB starter setup...";
-
     spinner.succeed(`Created ${chalk.cyan(appName)} successfully`);
   } catch (err) {
     spinner.fail("Project scaffolding failed");
-    console.error(err);
+
+    // Cleanup: remove the directory if it's mostly empty (failed halfway)
+    try {
+      const files = await fs.readdir(targetDir);
+      if (files.length < 3) {
+        await fs.rm(targetDir, { recursive: true, force: true });
+        console.log(chalk.gray("Cleaned up incomplete project directory."));
+      }
+    } catch {
+      // Ignore cleanup errors
+    }
+
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(chalk.red(`Error: ${message}`));
     process.exit(1);
   }
 
@@ -157,30 +156,35 @@ async function scaffoldTemplate(
     },
   };
 
-  await writeFile(targetDir, "package.json", JSON.stringify(pkg, null, 2));
+  try {
+    await writeFile(targetDir, "package.json", JSON.stringify(pkg, null, 2));
 
-  let indexContent: string;
-  switch (template) {
-    case "todo":
-      indexContent = todoTemplate(appName);
-      break;
-    case "chat":
-      indexContent = chatTemplate(appName);
-      break;
-    case "notes":
-      indexContent = notesTemplate(appName);
-      break;
-    default:
-      indexContent = blankTemplate(appName);
-      break;
+    let indexContent: string;
+    switch (template) {
+      case "todo":
+        indexContent = todoTemplate(appName);
+        break;
+      case "chat":
+        indexContent = chatTemplate(appName);
+        break;
+      case "notes":
+        indexContent = notesTemplate(appName);
+        break;
+      default:
+        indexContent = blankTemplate(appName);
+        break;
+    }
+    const layoutContent = layoutTemplate();
+
+    await writeFile(targetDir, "src/app/page.tsx", indexContent);
+    await writeFile(targetDir, "src/app/layout.tsx", layoutContent);
+
+    // .gitignore
+    await writeFile(targetDir, ".gitignore", "node_modules\n.next\ndist\n.env\n");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to write template files: ${message}`, { cause: err });
   }
-  const layoutContent = layoutTemplate();
-
-  await writeFile(targetDir, "src/app/page.tsx", indexContent);
-  await writeFile(targetDir, "src/app/layout.tsx", layoutContent);
-
-  // .gitignore
-  await writeFile(targetDir, ".gitignore", "node_modules\n.next\ndist\n.env\n");
 }
 
 function layoutTemplate(): string {
